@@ -40,21 +40,49 @@ app.get('/clients', async (req, res) => {
   }
 });
 
+// Dedicated search endpoint for clients
+app.get('/clients/search', async (req, res) => {
+  const { last_name, phone, address } = req.query;
+  let query = 'SELECT * FROM clients WHERE true';
+  const params = [];
+
+  if (last_name) {
+    query += ' AND last_name ILIKE $1';
+    params.push(`%${last_name}%`);
+  }
+  if (phone) {
+    query += ' AND phone ILIKE $2';
+    params.push(`%${phone}%`);
+  }
+  if (address) {
+    query += ' AND street_address ILIKE $3';
+    params.push(`%${address}%`);
+  }
+
+  try {
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Failed to retrieve clients');
+  }
+});
+
 // Route to get a client by ID
 app.get('/clients/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-      const { rows } = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
-      if (rows.length > 0) {
-        res.json(rows[0]);
-      } else {
-        res.status(404).send('Client not found');
-      }
-    } catch (err) {
-      console.error(err);
-      res.status(500).send('Failed to retrieve client');
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).send('Client not found');
     }
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Failed to retrieve client');
+  }
+});
 
 // Route to create a new client
 app.post('/clients', async (req, res) => {
@@ -112,4 +140,4 @@ app.delete('/clients/:id', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-});  
+});
